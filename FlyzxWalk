@@ -1,0 +1,333 @@
+--Key Sistem
+local ProtectionConfig = {
+    -- 🔴 CRITICAL: This MUST exactly match the 'Secret' value in your Key System's Config!
+    -- If your Key System has: Secret = "Test"
+    -- Then this must also be: SecretKey = "Test"
+    SecretKey = "2424",
+    
+    -- The name of your Hub (shown in the kick message if they try to bypass)
+    HubName = "Flyzx Walk"
+}
+
+-- Anti-Bypass Logic: Checks if the Key System successfully set the global variable
+if not _G[ProtectionConfig.SecretKey] then
+    local player = game:GetService("Players").LocalPlayer
+    if player then
+        player:Kick("\n🛡️ Unauthorized Execution 🛡️\n\nPlease use the official Key System to run " .. ProtectionConfig.HubName)
+    end
+    return -- Stops the rest of the script from loading!
+end
+
+-------------------------------------------------------------------------------
+-- 👇 YOUR MAIN SCRIPT CODE STARTS HERE 👇
+-------------------------------------------------------------------------------
+
+print(ProtectionConfig.HubName .. " Loaded Successfully!")
+
+-- LocalScript 
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+
+-- Ruta
+local puntos = {
+	Vector3.new(-151, 3, -146),
+	Vector3.new(-155, 3, 152),
+	Vector3.new(42, 3, 144),
+	Vector3.new(35, 3, -152)
+}
+
+local activo = false
+local velocidad = 80
+local puntoActual = 1
+local humanoid, root
+local minimizado = false
+
+-------------------------------------------------
+-- Personaje
+-------------------------------------------------
+local function obtenerPersonaje()
+	local character = player.Character or player.CharacterAdded:Wait()
+	humanoid = character:WaitForChild("Humanoid")
+	root = character:WaitForChild("HumanoidRootPart")
+end
+
+obtenerPersonaje()
+player.CharacterAdded:Connect(function()
+	task.wait(0.4)
+	obtenerPersonaje()
+end)
+
+-------------------------------------------------
+-- Movimiento Bypass
+-------------------------------------------------
+local function moverA(destino)
+	if not root or not root.Parent then return false end
+
+	local inicio = tick()
+	while (root.Position - destino).Magnitude > 3.5 do
+		if not activo or not root or not root.Parent then return false end
+		if tick() - inicio > 12 then return false end
+
+		local dir = (destino - root.Position).Unit
+		local move = dir * velocidad * RunService.Heartbeat:Wait()
+		root.CFrame = CFrame.new(root.Position + move) * CFrame.Angles(0, math.atan2(-dir.X, -dir.Z), 0)
+	end
+
+	root.CFrame = CFrame.new(destino.X, root.Position.Y, destino.Z)
+	return true
+end
+
+-------------------------------------------------
+-- GUI Bonita + Minimizable
+-------------------------------------------------
+task.wait(0.25)
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AutoWalk"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 210, 0, 168)
+main.Position = UDim2.new(0, 18, 0.38, 0)
+main.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+main.BorderSizePixel = 0
+main.ClipsDescendants = true
+main.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 12)
+mainCorner.Parent = main
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(90, 70, 180)
+stroke.Thickness = 1.4
+stroke.Transparency = 0.3
+stroke.Parent = main
+
+-- Barra superior
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 32)
+topBar.BackgroundColor3 = Color3.fromRGB(32, 28, 48)
+topBar.BorderSizePixel = 0
+topBar.Parent = main
+
+local topCorner = Instance.new("UICorner")
+topCorner.CornerRadius = UDim.new(0, 12)
+topCorner.Parent = topBar
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -70, 1, 0)
+title.Position = UDim2.new(0, 12, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "Flyzx Walk"
+title.TextColor3 = Color3.fromRGB(240, 240, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = topBar
+
+-- Botón Minimizar
+local minBtn = Instance.new("TextButton")
+minBtn.Size = UDim2.new(0, 26, 0, 22)
+minBtn.Position = UDim2.new(1, -34, 0.5, -11)
+minBtn.BackgroundColor3 = Color3.fromRGB(55, 50, 80)
+minBtn.Text = "−"
+minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minBtn.Font = Enum.Font.GothamBold
+minBtn.TextSize = 16
+minBtn.Parent = topBar
+
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 6)
+minCorner.Parent = minBtn
+
+-- Contenido (se oculta al minimizar)
+local content = Instance.new("Frame")
+content.Size = UDim2.new(1, 0, 1, -32)
+content.Position = UDim2.new(0, 0, 0, 32)
+content.BackgroundTransparency = 1
+content.Parent = main
+
+-- Estado
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, -16, 0, 18)
+status.Position = UDim2.new(0, 10, 0, 8)
+status.BackgroundTransparency = 1
+status.Text = "Estado: Detenido"
+status.TextColor3 = Color3.fromRGB(170, 170, 185)
+status.Font = Enum.Font.Gotham
+status.TextSize = 12
+status.TextXAlignment = Enum.TextXAlignment.Left
+status.Parent = content
+
+-- Punto
+local puntoLabel = Instance.new("TextLabel")
+puntoLabel.Size = UDim2.new(1, -16, 0, 16)
+puntoLabel.Position = UDim2.new(0, 10, 0, 28)
+puntoLabel.BackgroundTransparency = 1
+puntoLabel.Text = "Punto: - / 4"
+puntoLabel.TextColor3 = Color3.fromRGB(140, 190, 255)
+puntoLabel.Font = Enum.Font.Gotham
+puntoLabel.TextSize = 12
+puntoLabel.TextXAlignment = Enum.TextXAlignment.Left
+puntoLabel.Parent = content
+
+-- Velocidad
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(1, -16, 0, 16)
+speedLabel.Position = UDim2.new(0, 10, 0, 48)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "Velocidad: " .. velocidad
+speedLabel.TextColor3 = Color3.fromRGB(210, 210, 220)
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.TextSize = 12
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.Parent = content
+
+-- Botones velocidad
+local menos = Instance.new("TextButton")
+menos.Size = UDim2.new(0, 36, 0, 26)
+menos.Position = UDim2.new(0, 10, 0, 72)
+menos.BackgroundColor3 = Color3.fromRGB(45, 42, 65)
+menos.Text = "−"
+menos.TextColor3 = Color3.fromRGB(255, 255, 255)
+menos.Font = Enum.Font.GothamBold
+menos.TextSize = 16
+menos.Parent = content
+
+local menosCorner = Instance.new("UICorner")
+menosCorner.CornerRadius = UDim.new(0, 7)
+menosCorner.Parent = menos
+
+local mas = Instance.new("TextButton")
+mas.Size = UDim2.new(0, 36, 0, 26)
+mas.Position = UDim2.new(0, 52, 0, 72)
+mas.BackgroundColor3 = Color3.fromRGB(45, 42, 65)
+mas.Text = "+"
+mas.TextColor3 = Color3.fromRGB(255, 255, 255)
+mas.Font = Enum.Font.GothamBold
+mas.TextSize = 16
+mas.Parent = content
+
+local masCorner = Instance.new("UICorner")
+masCorner.CornerRadius = UDim.new(0, 7)
+masCorner.Parent = mas
+
+-- Botón Iniciar/Detener
+local toggle = Instance.new("TextButton")
+toggle.Size = UDim2.new(1, -20, 0, 30)
+toggle.Position = UDim2.new(0, 10, 0, 108)
+toggle.BackgroundColor3 = Color3.fromRGB(0, 155, 95)
+toggle.Text = "INICIAR"
+toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggle.Font = Enum.Font.GothamBold
+toggle.TextSize = 13
+toggle.Parent = content
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 8)
+toggleCorner.Parent = toggle
+
+-------------------------------------------------
+-- Minimizar
+-------------------------------------------------
+minBtn.MouseButton1Click:Connect(function()
+	minimizado = not minimizado
+	if minimizado then
+		main:TweenSize(UDim2.new(0, 210, 0, 32), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+		minBtn.Text = "+"
+		content.Visible = false
+	else
+		main:TweenSize(UDim2.new(0, 210, 0, 168), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+		minBtn.Text = "−"
+		content.Visible = true
+	end
+end)
+
+-------------------------------------------------
+-- Arrastrar (desde la barra superior)
+-------------------------------------------------
+local dragging, dragStart, startPos
+
+topBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = main.Position
+	end
+end)
+
+topBar.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - dragStart
+		main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+-------------------------------------------------
+-- Funciones
+-------------------------------------------------
+local function actualizar()
+	speedLabel.Text = "Velocidad: " .. velocidad
+	if activo then
+		status.Text = "Estado: Activo"
+		status.TextColor3 = Color3.fromRGB(90, 255, 150)
+		toggle.Text = "DETENER"
+		toggle.BackgroundColor3 = Color3.fromRGB(190, 50, 65)
+		puntoLabel.Text = "Punto: " .. puntoActual .. " / 4"
+	else
+		status.Text = "Estado: Detenido"
+		status.TextColor3 = Color3.fromRGB(170, 170, 185)
+		toggle.Text = "INICIAR"
+		toggle.BackgroundColor3 = Color3.fromRGB(0, 155, 95)
+		puntoLabel.Text = "Punto: - / 4"
+	end
+end
+
+menos.MouseButton1Click:Connect(function()
+	velocidad = math.clamp(velocidad - 10, 30, 170)
+	actualizar()
+end)
+
+mas.MouseButton1Click:Connect(function()
+	velocidad = math.clamp(velocidad + 10, 30, 170)
+	actualizar()
+end)
+
+toggle.MouseButton1Click:Connect(function()
+	activo = not activo
+	actualizar()
+end)
+
+-------------------------------------------------
+-- Bucle
+-------------------------------------------------
+task.spawn(function()
+	while true do
+		if activo and root and root.Parent then
+			for i, destino in ipairs(puntos) do
+				if not activo then break end
+				puntoActual = i
+				actualizar()
+				moverA(destino)
+				task.wait(0.12)
+			end
+		else
+			task.wait(0.2)
+		end
+	end
+end)
+
+actualizar()
