@@ -28,7 +28,7 @@ local Config = {
 
     -- [7] Hub Information & UI Text
     HubName         = "FlyzxWalk", -- The main title shown at the top of the GUI
-    HubDescription  = "..." -- The text shown below the title
+    HubDescription  = "Presiona GET KEY para obtener tu key" -- The text shown below the title
 }
 
 -------------------------------------------------------------------------------
